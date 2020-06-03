@@ -2,14 +2,14 @@ import tweepy
 import time
 
 consumer_key, consumer_secret = 'zfpHpfFvo90yMDzowqwFNxinu', 'QTvstr7ADcUeXTFlqNGMT4pPxTNvLoSicre9AUw3WnKd9Xxezg'
-access_token, access_token_secret = ''
+access_token, access_token_secret = '1268207490711326721-wTsgadA6DyFLm7dvZq9UV62FIcTeW8', 'kQ3xTjzcRzMTQhrY8KdHZk6maw8JXb4rGe2DPkGRPtfIP'
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 
 api = tweepy.API(auth)
 
-#  get all the tweets from your timeline
+# get all the tweets from your timeline
 public_tweets = api.home_timeline()
 for tweet in public_tweets:
     print(tweet.text)
@@ -19,21 +19,37 @@ user = api.me()
 
 #  prevent hitting API to many times
 def limit_handler(cursor):
-    try:
-        while True:
+    while True:
+        try:
             yield cursor.next()
-    except tweepy.RateLimitError:
-        time.sleep(300)
+        except tweepy.RateLimitError:
+            time.sleep(15 * 60)
+        except StopIteration:
+            print("Breaking the iteration...")
+            break
 
 
 #  generous bot
 followers = tweepy.Cursor(api.followers).items()  # list of followers
 
-for follower in followers:
-    if follower:
-        follower.follow()
-        print(f"Following: "+follower)
+for follower in limit_handler(followers):
+    follower.follow()
+    print(f"Following: "+follower)
 
-    else:
-        print("You don't have any followers yet.")
+
+#  search bot
+search_string = 'developer'
+numOfTweets = 3
+
+for tweet in limit_handler(tweepy.Cursor(api.search, search_string).items(numOfTweets)):
+    try:
+        tweet.favorite()
+        print("Tweet liked.")
+    except tweepy.TweepError as e:
+        print(e.reason)
+    except StopIteration:
+        break
+
+
+
 
